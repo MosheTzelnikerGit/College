@@ -1,20 +1,44 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-const StudentSchema = new mongoose.Schema(
-    {
-        course: { // אם השדה הוא עבור קורס או משהו כזה
-            type: String,
-            required: true
-        },
-        name: {
-            type: String,
-            required: true
-        },
-        grade: { // תיקון השגיאה
-            type: Number,
-            required: true
+// הגדרת טיפוס לסטודנט
+interface IGrade {
+    course: string;
+    grades: number[];
+}
+
+interface IStudent extends Document {
+    name: string;
+    courses: IGrade[];
+    calculateAverage: () => number; // הוספת הפונקציה כאן
+}
+
+// הגדרת הסכמה
+const StudentSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    courses: [
+        {
+            course: { type: String, required: true },
+            grades: { type: [Number], default: [] } // מערך של ציונים לכל קורס
         }
-    }
-);
+    ]
+});
 
-export default mongoose.model('Student', StudentSchema);
+// הוספת method לחישוב ממוצע הציונים
+StudentSchema.methods.calculateAverage = function (): number {
+    let totalGrades = 0;
+    let gradeCount = 0;
+
+    // מעבר על כל הקורסים והציונים
+    this.courses.forEach((course: { grades: number[] }) => {
+        course.grades.forEach((grade: number) => {
+            totalGrades += grade;
+            gradeCount++;
+        });
+    });
+
+    // חישוב ממוצע
+    return gradeCount > 0 ? totalGrades / gradeCount : 0;
+};
+
+// ייצוא המודל
+export const Student = mongoose.model<IStudent>("Student", StudentSchema);
